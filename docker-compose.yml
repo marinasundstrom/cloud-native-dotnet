@@ -1,0 +1,207 @@
+version: "3"
+
+services:
+  web:
+    container_name: web
+    hostname: web
+    ports:
+      - 5010:80
+      - 5013:443
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./src/Web/Dockerfile
+    env_file: 
+      - .env
+    volumes:
+      - ${HOME}/.aspnet/https:/https/
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://*:80;https://*:443/
+      - ASPNETCORE_HTTP_PORT=5010
+      - ASPNETCORE_HTTPS_PORT=5013
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    depends_on:
+      - prometheus
+      - zipkin
+      - loki
+      - redis
+      - mssql
+      - rabbitmq
+
+  clientapp:
+    container_name: clientapp
+    hostname: clientapp
+    ports:
+      - 8080:80
+      - 8081:443
+    build:
+      context: .
+      dockerfile: ./src/ClientApp/Dockerfile
+    volumes:
+    #  - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./localhost.key:/root/ssl/key.pem
+      - ./localhost.crt:/root/ssl/cert.pem
+    depends_on:
+      - web
+
+  worker:
+    container_name: worker
+    hostname: worker
+    ports:
+      - 5030:80
+      - 5031:443
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./src/Worker/Dockerfile
+    env_file: 
+      - .env
+    volumes:
+      - ${HOME}/.aspnet/https:/https/
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://*:80;https://*:443/
+      - ASPNETCORE_HTTP_PORT=5030
+      - ASPNETCORE_HTTPS_PORT=5031
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    depends_on:
+      - prometheus
+      - zipkin
+      - loki
+      - redis
+      - mssql
+      - rabbitmq
+      
+  identityservice:
+    container_name: identityservice
+    hostname: identityservice
+    ports:
+      - 8000:80
+      - 8001:443
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./other/IdentityService/Dockerfile
+    env_file: 
+      - .env
+    volumes:
+      - ./other/IdentityService:/root/IdentityServer:cached
+      - ${HOME}/.aspnet/https:/https/
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://*:80;https://*:443/
+      - ASPNETCORE_HTTP_PORT=8000
+      - ASPNETCORE_HTTPS_PORT=8001
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    depends_on:
+      - web
+      - zipkin
+
+  healthchecks-ui:
+    container_name: healthchecks-ui
+    hostname: healthchecks-ui
+    ports:
+      - 8030:80
+      - 8031:443
+    restart: unless-stopped
+    build:
+      context: .
+      dockerfile: ./other/HealthChecks/Dockerfile
+    env_file: 
+      - .env
+    volumes:
+      - ${HOME}/.aspnet/https:/https/
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://*:80;https://*:443/
+      - ASPNETCORE_HTTP_PORT=8030
+      - ASPNETCORE_HTTPS_PORT=8031
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=password
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    depends_on:
+      - web
+      - zipkin
+
+  mssql:
+    container_name: mssql
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    cap_add: [ 'SYS_PTRACE' ]
+    environment:
+      - "MSSQL_SA_PASSWORD=P@ssw0rd"
+      - "MSSQL_PID=Developer"
+      - "ACCEPT_EULA=1"
+    ports:
+      - "1433:1433"
+    hostname: mssql
+    volumes:
+      - "./.data/sql-edge:/var/opt/mssql"
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - 9411:9411
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.local.yml'
+    ports:
+      - 9090:9090
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prom_data:/prometheus
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    volumes:
+      - ./grafana/datasource:/etc/grafana/provisioning/datasources
+      - ./grafana/dashboard/dashboard.yml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on: 
+      - loki
+      - prometheus
+
+  loki:
+    image: grafana/loki
+    container_name: loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  redis:
+    image: redis
+    container_name: redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes: 
+      - redis_data:/data
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+      - RABBITMQ_ERLANG_COOKIE=SomeRandomStringHere
+
+volumes:
+  prom_data:
+  orders_data:
+  redis_data:
+    driver: local

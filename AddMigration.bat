@@ -1,0 +1,1 @@
+﻿dotnet ef migrations add ModelCreate --project src/Web/Web.csproj --startup-project src/Web/Web.csproj --output-dir Infrastructure/Persistence/Migrations --namespace BlazorApp1.Infrastructure.Persistence.Migrations

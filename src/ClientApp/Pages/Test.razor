@@ -1,0 +1,16 @@
+@page "/test"
+@attribute [Authorize]
+@inject ITestClient TestClient
+
+<MudButton OnClick="OnTest">Test</MudButton>
+
+<p>@text</p>
+
+@code {
+    string? text;
+
+    async Task OnTest() 
+    {
+        text = await TestClient.TestAsync("Foo");
+    }
+}

@@ -1,0 +1,15 @@
+﻿@inherits LayoutComponentBase
+@layout BaseLayout
+@inject IThemeManager ThemeManager
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-8">
+    @Body
+</MudContainer>
+
+@code 
+{
+    // protected override void OnInitialized()
+    // {
+    //     ThemeManager.SetTheme(Themes.AppTheme);
+    // }
+}
