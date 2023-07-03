@@ -57,5 +57,5 @@ spec:
       volumes:
         - name: rabbitmq-data
           hostPath:
-            path: "/Users/marina/Projects/BlazorApp1/.data/rabbitmq"
+            path: "/host/Projects/BlazorApp1/.data/rabbitmq"
             type: DirectoryOrCreate

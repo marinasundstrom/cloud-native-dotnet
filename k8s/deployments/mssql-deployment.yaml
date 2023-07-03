@@ -55,63 +55,63 @@ spec:
           - name: ACCEPT_EULA
             value: "1"
         volumeMounts:
-          # - name: sqldata2
+          - name: sqldata2
+            mountPath: /var/opt/mssql/data
+          # - name: mssqldb
           #   mountPath: /var/opt/mssql
-          - name: mssqldb
-            mountPath: /var/opt/mssql
-      # initContainers:
-      # - name: mssql-change-owner
-      #   image: busybox:latest
-      #   command: ["sh", "-c", "chown -R 10001:0 /var/opt/mssql"]
-      #   volumeMounts:
-      #   - name: sqldata2
-      #     mountPath: /var/opt/mssql
+      initContainers:
+      - name: volume-permissions
+        image: busybox:latest
+        command: ["/bin/sh"]
+        args: ["-c", "chmod -R 777 /var/opt/mssql/data && chown -R 1000:1000 /var/opt/mssql/data"]
+        volumeMounts:
+        - name: sqldata2
+          mountPath: /var/opt/mssql/data
       volumes:
-        - name: mssqldb
-          persistentVolumeClaim:
-            claimName: mssql-data
-        # - name: sqldata2
-        #   hostPath:
-        #     path: "/Users/marina/Projects/BlazorApp1/.data/sql-edge"      
-        #     type: DirectoryOrCreate
----
-kind: StorageClass
-apiVersion: storage.k8s.io/v1
-metadata:
-  name: local-storage
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
----
-kind: PersistentVolume
-apiVersion: v1
-metadata:
-  name: mssql-data-pv
-spec:
-  storageClassName: local-storage
-  persistentVolumeReclaimPolicy: Retain
-  capacity:
-    storage: 8Gi
-  accessModes:
-    - ReadWriteOnce
-  local:
-    path: "/Users/marina/Projects/BlazorApp1/.data/sql-edge"
-  nodeAffinity:
-    required:
-      nodeSelectorTerms:
-      - matchExpressions:
-        - key: kubernetes.io/hostname
-          operator: In
-          values:
-          - my-node
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mssql-data
-spec:
-  storageClassName: local-storage
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 8Gi
+        # - name: mssqldb
+        #   persistentVolumeClaim:
+        #     claimName: mssql-data
+        - name: sqldata2
+          hostPath:
+            path: "/host/Projects/BlazorApp1/.data/sql-edge/data"      
+# ---
+# kind: StorageClass
+# apiVersion: storage.k8s.io/v1
+# metadata:
+#   name: local-storage
+# provisioner: kubernetes.io/no-provisioner
+# volumeBindingMode: WaitForFirstConsumer
+# ---
+# kind: PersistentVolume
+# apiVersion: v1
+# metadata:
+#   name: mssql-data-pv
+# spec:
+#   storageClassName: local-storage
+#   persistentVolumeReclaimPolicy: Retain
+#   capacity:
+#     storage: 8Gi
+#   accessModes:
+#     - ReadWriteOnce
+#   local:
+#     path: "/host/Projects/BlazorApp1/.data/sql-edge"
+#   nodeAffinity:
+#     required:
+#       nodeSelectorTerms:
+#       - matchExpressions:
+#         - key: kubernetes.io/hostname
+#           operator: In
+#           values:
+#           - my-node
+# ---
+# apiVersion: v1
+# kind: PersistentVolumeClaim
+# metadata:
+#   name: mssql-data
+# spec:
+#   storageClassName: local-storage
+#   accessModes:
+#     - ReadWriteOnce
+#   resources:
+#     requests:
+#       storage: 8Gi
