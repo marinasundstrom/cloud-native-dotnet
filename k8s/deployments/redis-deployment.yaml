@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  labels:
+    app: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis
+        resources:
+          limits:
+            memory: 512Mi
+            cpu: "1"
+          requests:
+            memory: 256Mi
+            cpu: "0.2"
+        ports:
+          - containerPort: 6379
+            hostPort: 6379
+        volumeMounts:
+          - mountPath: /data
+            name: redis-storage
+      volumes:
+        - name: redis-storage
+          hostPath: 
+            path: "/Users/marina/Projects/BlazorApp1/.data/redis"
